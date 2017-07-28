@@ -11,6 +11,7 @@
 
 #include <cstring>
 #include <iostream>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <system_error>
@@ -137,7 +138,7 @@ namespace http {
                 throw std::system_error((int)errn, std::system_category());
             }
             if (code > 299) {
-                throw HttpError(code);
+                throw Error(code);
             }
             this->respCode = (int)code;
         }
@@ -157,10 +158,10 @@ namespace http {
         CURL* req;
     };
 
-    std::shared_ptr<HttpResponse> HttpHandlerCurl::Handle(const HttpRequest& req)
+    std::unique_ptr<Response> HandlerCurl::Handle(const Request& req)
     {
 
-        auto resp = std::make_shared<HttpResponse>();
+        auto resp = std::unique_ptr<Response>(new Response());
         curlReq creq;
 
         for (auto const& item : req.Headers) {

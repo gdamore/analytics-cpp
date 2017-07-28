@@ -54,11 +54,7 @@ namespace http {
         { 0, NULL },
     };
 
-    HttpHandlerWinHttp::HttpHandlerWinHttp()
-    {
-    }
-
-    std::shared_ptr<HttpResponse> HttpHandlerWinHttp::Handle(const HttpRequest& req)
+    std::unique_ptr<Response> HandlerWinInet::Handle(const Request& req)
     {
         URL_COMPONENTS urlComp;
         HINTERNET internet;
@@ -72,7 +68,7 @@ namespace http {
         std::string host;
         std::string path;
 
-        auto resp = std::make_shared<HttpResponse>();
+        auto resp = std::unique_ptr<Response>(new Response());
 
         // Extract the hostname form the URL.
         ZeroMemory(&urlComp, sizeof(urlComp));

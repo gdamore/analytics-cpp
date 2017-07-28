@@ -22,11 +22,11 @@ namespace http {
     /// HttpHandlerNone is a stub implementation that does not actually
     /// do anything.  It exists to be compiled into binaries that don't
     /// use libcurl, so that a NOP default can exist.
-    class HttpHandlerNone : public HttpHandler {
+    class HandlerNone : public Handler {
     public:
-        std::shared_ptr<HttpResponse> Handle(const HttpRequest&)
+        std::unique_ptr<Response> Handle(const Request&)
         {
-            auto resp = std::make_shared<HttpResponse>();
+            auto resp = std::unique_ptr<Response>(new Response());
             resp->Code = 0;
             resp->Message = "Unimplemented.";
             return resp;

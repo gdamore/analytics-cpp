@@ -40,6 +40,8 @@ using json = nlohmann::json;
 namespace segment {
 namespace analytics {
 
+    std::string Version = "0.9";
+
 #ifdef _WIN32
     void getOs(std::string& name, std::string& vers)
     {
@@ -104,7 +106,7 @@ namespace analytics {
             os["version"] = osvers;
         }
         lib["name"] = "analytics-cpp";
-        lib["version"] = "0.0";
+        lib["version"] = Version;
         context["os"] = os;
         context["library"] = lib;
         return context;
@@ -115,11 +117,11 @@ namespace analytics {
     {
         host = "https://api.segment.io";
 #ifdef SEGMENT_USE_CURL
-        Handler = std::make_shared<segment::http::HttpHandlerCurl>();
+        Handler = std::make_shared<segment::http::HandlerCurl>();
 #elif defined(SEGMENT_USE_WININET)
-        Handler = std::make_shared<segment::http::HttpHandlerWinHttp>();
+        Handler = std::make_shared<segment::http::HandlerWinInet>();
 #else
-        Handler = std::make_shared<segment::http::HttpHandlerNone>();
+        Handler = std::make_shared<segment::http::HandlerNone>();
 #endif
         thr = std::thread(worker, this);
         MaxRetries = 5;
@@ -138,11 +140,11 @@ namespace analytics {
         , host(host)
     {
 #ifdef SEGMENT_USE_CURL
-        Handler = std::make_shared<segment::http::HttpHandlerCurl>();
+        Handler = std::make_shared<segment::http::HandlerCurl>();
 #elif defined(SEGMENT_USE_WININET)
-        Handler = std::make_shared<segment::http::HttpHandlerWinHttp>();
+        Handler = std::make_shared<segment::http::HandlerWinInet>();
 #else
-        Handler = std::make_shared<segment::http::HttpHandlerNone>();
+        Handler = std::make_shared<segment::http::HandlerNone>();
 #endif
 
         thr = std::thread(worker, this);
@@ -311,7 +313,7 @@ namespace analytics {
 
     void Analytics::sendBatch()
     {
-        segment::http::HttpRequest req;
+        segment::http::Request req;
         // XXX add default context or integrations?
 
         auto tmstamp = TimeStamp();
@@ -343,7 +345,7 @@ namespace analytics {
 
         auto resp = this->Handler->Handle(req);
         if (resp->Code != 200) {
-            throw(segment::http::HttpError(resp->Code));
+            throw(segment::http::Error(resp->Code));
         }
     }
 

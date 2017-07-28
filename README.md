@@ -39,8 +39,6 @@ on Ubuntu do `apt-get install libcurl4-gnutls-dev` for the goodness.
 You can elide these, and provide your own transport.  To eliminate the stock and
 use a stub instead, use -DNO_DEFAULT_HTTP=ON on the CMake configure line.
 
-To keep the codebase small/simple to work with, we rely on `libcurl` for making our HTTP requests. Install `libcurl` with `apt-get install -qq libcurl4-gnutls-dev`, then do:
-
 There is an example program you can see for how to use it.  The API is documented
 in the analytics.hpp header file.  (If you need to override the transport, you
 will also need to look in the http.hpp file.)

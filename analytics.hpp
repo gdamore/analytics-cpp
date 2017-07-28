@@ -46,8 +46,8 @@ namespace analytics {
         Object object;
     };
 
-    // TimeStamp is a convenience function that returns the current system
-    // time in ISO-8601 format.  It will include fractional times to the
+    /// TimeStamp is a convenience function that returns the current system
+    /// time in ISO-8601 format.  It will include fractional times to the
     /// precision of the system clock.
     std::string TimeStamp();
 
@@ -96,7 +96,7 @@ namespace analytics {
 
         /// Handler is the backend HTTP transport handler.  The constructor
         /// will initialize a default based upon compile time operations.
-        std::shared_ptr<segment::http::HttpHandler> Handler;
+        std::shared_ptr<segment::http::Handler> Handler;
 
         /// Callback is a callback object that wlll be called to inform
         /// the caller of success or failure of posting events to the

@@ -18,16 +18,16 @@
 namespace segment {
 namespace http {
 
-    /// HttpError models an error or exception from the HTTP implementation.
+    /// Error models an error or exception from the HTTP implementation.
     /// Implementations may throw this instead of returning an error inline.
-    class HttpError : public std::exception {
+    class Error : public std::exception {
 
     public:
         /// Constructor.
         /// @param code [in] The HTTP result code.  This should be a
         ///                  valid HTTP status code, unless the request was
         ///                  not serviced at all, in which case it should be zero.
-        HttpError(int code)
+        Error(int code)
         {
             this->code = code;
             this->msg = "HTTP Error " + std::to_string(code);
@@ -38,7 +38,7 @@ namespace http {
         ///                  valid HTTP status code, unless the request was
         ///                  not serviced at all, in which case it should be zero.
         /// @param msg [in] Override the default message.
-        HttpError(int code, std::string msg)
+        Error(int code, std::string msg)
         {
             this->code = code;
             this->msg = msg;
@@ -55,10 +55,10 @@ namespace http {
         std::string msg;
     };
 
-    /// HttpRequest models an HTTP request, such as a POST.  In fact, as of
+    /// Request models an HTTP request, such as a POST.  In fact, as of
     /// this writing, only POST is supported, as it is all that the existing
     /// analytics framework requires.
-    class HttpRequest {
+    class Request {
     public:
         /// Method should be GET, POST, or similar.  At present only POST is
         /// supported.  This should match *exactly* what the HTTP standard
@@ -83,7 +83,7 @@ namespace http {
     };
 
     /// HttpResponse models a result from performing an HTTP request.
-    class HttpResponse {
+    class Response {
     public:
         /// Code is an HTTP response code, like 200 or 404.  If the request
         /// could not be delivered to the server, or a valid response could
@@ -114,16 +114,16 @@ namespace http {
     /// Body of the response.  Nonetheless, it is recommended that
     /// implementations do fill this out to future-proof in case we
     /// begin using more fully featured handles.
-    class HttpHandler {
+    class Handler {
     public:
-        virtual ~HttpHandler(){};
+        virtual ~Handler(){};
         /// Handle taks a request and turns it into a response, generally
         /// by posting it to the Segment API service.  This API is strictly
         /// synchronous, but Segment always performs this operation from
         /// a context where this is safe.
         /// @param [in] req The HTTP request object.
         /// @return The HTTP response object.
-        virtual std::shared_ptr<HttpResponse> Handle(const HttpRequest& req) = 0;
+        virtual std::unique_ptr<Response> Handle(const Request& req) = 0;
     };
 
 } // namespace http

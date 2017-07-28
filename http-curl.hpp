@@ -15,16 +15,16 @@
 namespace segment {
 namespace http {
 
-    /// HttpCurl is an implementation of the HttpHandler API
+    /// HandlerCurl is an implementation of the Handler API
     /// based on libcurl.  At present it only supports POST, and it
     /// does not actually populate the response fields or data, since
     /// they are not used by the framework.
-    class HttpHandlerCurl : public HttpHandler {
+    class HandlerCurl : public Handler {
 
     public:
-        HttpHandlerCurl(){};
-        ~HttpHandlerCurl(){};
-        std::shared_ptr<HttpResponse> Handle(const HttpRequest& req);
+        HandlerCurl(){};
+        ~HandlerCurl(){};
+        std::unique_ptr<Response> Handle(const Request& req);
     };
 
 } // namespace http
