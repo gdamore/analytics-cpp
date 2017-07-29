@@ -32,6 +32,10 @@ namespace analytics {
     /// we validate the entity is actually an Object.
     using Object = nlohmann::json;
 
+    // Events are just JSON objects under the hood.
+    using Event = Object;
+
+#if 0
     class Event {
     public:
         Event(
@@ -45,6 +49,7 @@ namespace analytics {
         ~Event(){};
         Object object;
     };
+#endif
 
     /// TimeStamp is a convenience function that returns the current system
     /// time in ISO-8601 format.  It will include fractional times to the
@@ -59,12 +64,12 @@ namespace analytics {
         virtual ~Callback(){};
         /// Success is called when the Event has successfully been uploaded
         /// to Segment.
-        virtual void Success(std::shared_ptr<Event>) = 0;
+        virtual void Success(const Event&) = 0;
 
         /// Failure is called when the Event was unable to be uploaded.
         /// @param ev [in] An incoming event.
         /// @param reason [in] Some reason why the failure occurrecd.
-        virtual void Failure(std::shared_ptr<Event> ev, const std::string reason) = 0;
+        virtual void Failure(const Event& ev, const std::string& reason) = 0;
     };
 
     /// Analytics is the main object for accessing Segment's Analytics
@@ -137,23 +142,115 @@ namespace analytics {
         /// keys to booleans.  (A JSON object where all values are booleans.)
         Object Integrations;
 
-        void Track(std::string userId, std::string event, Object properties = nullptr);
-        void Track(std::string userId, std::string anonymousId, std::string event, Object properties, Object context, Object integrations);
+        // With each of these functions, if you need to use an anonymous ID
+        // instead of a user ID, just pass the empty string for the user ID
+        // and set the anonymous ID after.
 
-        void Identify(std::string userId, Object traits = nullptr);
-        void Identify(std::string userId, std::string anonymousId, Object traits, Object context, Object integrations);
+        Event CreateTrackEvent(
+            const std::string& event,
+            const std::string& userId,
+            const Object& properties = nullptr);
 
-        void Page(std::string name, std::string userId, Object properties = nullptr);
-        void Page(std::string name, std::string userId, std::string anonymousId, Object properties, Object context, Object integrations);
+        Event CreateAliasEvent(
+            const std::string& previousId,
+            const std::string& userId);
 
-        void Screen(std::string name, std::string userId, Object properties = nullptr);
-        void Screen(std::string name, std::string userId, std::string anonymousId, Object properties, Object context, Object integrations);
+        Event CreateIdentifyEvent(
+            const std::string& userId,
+            const Object& traits = nullptr);
 
-        void Alias(std::string previousId, std::string userId);
-        void Alias(std::string previousId, std::string userId, std::string anonymousId, Object context, Object integrations);
+        Event CreateGroupEvent(
+            const std::string& groupId,
+            const Object& traits);
 
-        void Group(std::string groupId, Object traits = nullptr);
-        void Group(std::string groupId, std::string userId, std::string anonymousId, Object traits, Object context, Object integrations);
+        Event CreatePageEvent(
+            const std::string& name,
+            const std::string& userId,
+            const Object& properties = nullptr);
+
+        Event CreateScreenEvent(
+            const std::string& name,
+            const std::string& userId,
+            const Object& properties = nullptr);
+
+        void SetEventAnonymousId(Event&, const std::string&);
+        void SetEventIntegrations(Event&, const Object&);
+        void SetEventContext(Event&, const Object&);
+        void SetEventTimeStamp(Event&, const std::string&);
+
+        void PostEvent(Event);
+
+        void Track(
+            const std::string& userId,
+            const std::string& event,
+            const Object& properties = nullptr);
+
+        void Track(
+            const std::string& userId,
+            const std::string& anonymousId,
+            const std::string& event,
+            const Object& properties,
+            const Object& context,
+            const Object& integrations);
+
+        void Identify(
+            const std::string& userId,
+            const Object& traits = nullptr);
+
+        void Identify(
+            const std::string& userId,
+            const std::string& anonymousId,
+            const Object& traits,
+            const Object& context,
+            const Object& integrations);
+
+        void Page(
+            const std::string& name,
+            const std::string& userId,
+            const Object& properties = nullptr);
+
+        void Page(const std::string& name,
+            const std::string& userId,
+            const std::string& anonymousId,
+            const Object& properties,
+            const Object& context,
+            const Object& integrations);
+
+        void Screen(
+            const std::string& name,
+            const std::string& userId,
+            const Object& properties = nullptr);
+
+        void Screen(
+            const std::string& name,
+            const std::string& userId,
+            const std::string& anonymousId,
+            const Object& properties,
+            const Object& context,
+            const Object& integrations);
+
+        void Alias(
+            const std::string& previousId,
+            const std::string& userId);
+
+        void Alias(
+            const std::string& previousId,
+            const std::string& userId,
+            const std::string& anonymousId,
+            const Object& context,
+            const Object& integrations);
+
+        void Group(
+            const std::string& groupId,
+            const Object& traits = nullptr);
+
+        void Group(
+            const std::string& groupId,
+            const std::string& userId,
+            const std::string& anonymousId,
+            const Object& traits,
+            const Object& context,
+            const Object& integrations);
 
     private:
         std::string writeKey;
@@ -163,8 +260,8 @@ namespace analytics {
         std::condition_variable emptyCv;
         std::condition_variable flushCv;
         std::thread thr;
-        std::deque<std::shared_ptr<Event>> events;
-        std::deque<std::shared_ptr<Event>> batch;
+        std::deque<Event> events;
+        std::deque<Event> batch;
         std::chrono::system_clock::time_point flushTime;
         std::chrono::system_clock::time_point retryTime;
         std::chrono::system_clock::time_point wakeTime;
@@ -173,7 +270,7 @@ namespace analytics {
         bool shutdown;
 
         void sendBatch();
-        void queueEvent(std::shared_ptr<Event>);
+        void queueEvent(Event);
         void processQueue();
         static void worker(Analytics*);
     };

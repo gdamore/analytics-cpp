@@ -24,14 +24,14 @@ using namespace segment::analytics;
 
 class myTestCB : public Callback {
 public:
-    void Success(std::shared_ptr<Event> ev)
+    void Success(const Event& ev)
     {
         std::lock_guard<std::mutex> l(lk);
         success++;
         wake();
     }
 
-    void Failure(std::shared_ptr<Event> ev, const std::string reason)
+    void Failure(const Event& ev, const std::string& reason)
     {
         std::lock_guard<std::mutex> l(lk);
         last_reason = reason;

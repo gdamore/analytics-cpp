@@ -115,7 +115,8 @@ namespace http {
             setopt(CURLOPT_HTTPHEADER, this->headers);
             setopt(CURLOPT_WRITEFUNCTION, this->writeCallback);
             setopt(CURLOPT_WRITEDATA, this);
-            //setopt(CURLOPT_VERBOSE, 1);
+            //            setopt(CURLOPT_VERBOSE, 1);
+            //            printf("POSTING: %s\n", body.c_str());
 
             if ((rv = curl_easy_perform(req)) != CURLE_OK) {
                 if (rv == CURLE_OUT_OF_MEMORY) {

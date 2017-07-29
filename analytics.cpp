@@ -68,28 +68,103 @@ namespace analytics {
         return tmstamp;
     }
 
-    Event::Event(std::string type, std::string userId, std::string anonymousId, Object context, Object integrations)
+    // raw event (untyped) -- do not use from application code.
+    Event createEvent(const std::string& type)
     {
-        this->object = json::object();
-        object["timestamp"] = TimeStamp();
-        object["type"] = type;
-        if (userId != "") {
-            object["userId"] = userId;
-        }
-        if (anonymousId != "") {
-            object["anonymousId"] = anonymousId;
-        }
-        if (context.is_object()) {
-            object["context"] = context;
-        }
-        if (integrations.is_object()) {
-            object["integrations"] = integrations;
+        Event ev;
+        ev["timestamp"] = TimeStamp();
+        ev["type"] = type;
+        return (ev);
+    }
+
+    // Add the object into the event.  If the object is null or otherwise
+    // not a valid JSON object, then any prior value is removed.
+    void addEventObject(Event& ev,
+        const std::string& name, const Object& obj)
+    {
+        if (obj.is_object()) {
+            ev[name] = obj;
+        } else {
+            ev.erase(name);
         }
     }
 
-    void to_json(json& j, std::shared_ptr<Event> ev)
+    // Add the string into the event.  If the string is empty, then any prior value
+    // is removed.
+    void addEventString(Event& ev,
+        const std::string& name, const std::string& val)
     {
-        j = ev->object;
+        if (val != "") {
+            ev[name] = val;
+        } else {
+            ev.erase(name);
+        }
+    }
+
+    Event Analytics::CreateTrackEvent(
+        const std::string& event,
+        const std::string& userId,
+        const Object& properties)
+    {
+        auto ev = createEvent("track");
+        addEventString(ev, "event", event);
+        addEventString(ev, "userId", userId);
+        addEventObject(ev, "properties", properties);
+        return (ev);
+    }
+
+    Event Analytics::CreateAliasEvent(
+        const std::string& previousId,
+        const std::string& userId)
+    {
+        auto ev = createEvent("alias");
+        addEventString(ev, "previousId", previousId);
+        addEventString(ev, "userId", userId);
+        return (ev);
+    }
+
+    Event Analytics::CreateIdentifyEvent(
+        const std::string& userId,
+        const Object& traits)
+    {
+        auto ev = createEvent("identify");
+        addEventString(ev, "userId", userId);
+        addEventObject(ev, "traits", traits);
+        return (ev);
+    }
+
+    Event Analytics::CreateGroupEvent(
+        const std::string& groupId,
+        const Object& traits)
+    {
+        auto ev = createEvent("group");
+        addEventString(ev, "groupId", groupId);
+        addEventObject(ev, "traits", traits);
+        return (ev);
+    }
+
+    Event Analytics::CreatePageEvent(
+        const std::string& name,
+        const std::string& userId,
+        const Object& properties)
+    {
+        auto ev = createEvent("page");
+        addEventString(ev, "name", name);
+        addEventString(ev, "userId", userId);
+        addEventObject(ev, "properties", properties);
+        return (ev);
+    }
+
+    Event Analytics::CreateScreenEvent(
+        const std::string& name,
+        const std::string& userId,
+        const Object& properties)
+    {
+        auto ev = createEvent("screen");
+        addEventString(ev, "name", name);
+        addEventString(ev, "userId", userId);
+        addEventObject(ev, "properties", properties);
+        return (ev);
     }
 
     Object initContext()
@@ -199,91 +274,149 @@ namespace analytics {
         flushCv.notify_one();
     }
 
-    void Analytics::Track(std::string userId, std::string event, Object properties)
+    void Analytics::Track(
+        const std::string& userId,
+        const std::string& event,
+        const Object& properties)
     {
         Track(userId, "", event, properties, nullptr, nullptr);
     }
 
-    void Analytics::Track(std::string userId, std::string anonymousId, std::string event, Object properties, Object context, Object integrations)
+    void Analytics::Track(
+        const std::string& userId,
+        const std::string& anonymousId,
+        const std::string& event,
+        const Object& properties,
+        const Object& context,
+        const Object& integrations)
     {
-        auto e = std::make_shared<Event>("track", userId, anonymousId, context, integrations);
-        e->object["event"] = event;
-        if (properties.is_object()) {
-            e->object["properties"] = properties;
-        }
+        auto ev = CreateTrackEvent(userId, event, properties);
+        addEventString(ev, "anonymousId", anonymousId);
+        addEventObject(ev, "context", context);
+        addEventObject(ev, "integrations", integrations);
 
-        queueEvent(e);
+        queueEvent(std::move(ev));
     }
 
-    void Analytics::Identify(std::string userId, Object traits)
+    void Analytics::Identify(
+        const std::string& userId,
+        const Object& traits)
     {
         Identify(userId, "", traits, nullptr, nullptr);
     }
 
-    void Analytics::Identify(std::string userId, std::string anonymousId, Object traits, Object context, Object integrations)
+    void Analytics::Identify(
+        const std::string& userId,
+        const std::string& anonymousId,
+        const Object& traits,
+        const Object& context,
+        const Object& integrations)
     {
-        auto e = std::make_shared<Event>("identify", userId, anonymousId, context, integrations);
-        if (traits.is_object()) {
-            e->object["traits"] = traits;
-        }
-        queueEvent(e);
+        auto ev = CreateIdentifyEvent(userId, traits);
+        addEventString(ev, "anonymousId", anonymousId);
+        addEventObject(ev, "context", context);
+        addEventObject(ev, "integrations", integrations);
+
+        queueEvent(std::move(ev));
     }
 
-    void Analytics::Page(std::string name, std::string userId, Object properties)
+    void Analytics::Page(
+        const std::string& name,
+        const std::string& userId,
+        const Object& properties)
     {
         Page(name, userId, "", properties, nullptr, nullptr);
     }
 
-    void Analytics::Page(std::string name, std::string userId, std::string anonymousId, Object properties, Object context, Object integrations)
+    void Analytics::Page(
+        const std::string& name,
+        const std::string& userId,
+        const std::string& anonymousId,
+        const Object& properties,
+        const Object& context,
+        const Object& integrations)
     {
-        auto e = std::make_shared<Event>("page", userId, anonymousId, context, integrations);
-        if (properties.is_object()) {
-            e->object["properties"] = properties;
-        }
+        auto ev = CreatePageEvent(name, userId, properties);
+        addEventString(ev, "anonymousId", anonymousId);
+        addEventObject(ev, "context", context);
+        addEventObject(ev, "integrations", integrations);
 
-        queueEvent(e);
+        queueEvent(std::move(ev));
     }
-    void Analytics::Screen(std::string name, std::string userId, Object properties)
+    void Analytics::Screen(
+        const std::string& name,
+        const std::string& userId,
+        const Object& properties)
     {
-        this->Screen(name, userId, "", properties, nullptr, nullptr);
+        Screen(name, userId, "", properties, nullptr, nullptr);
     }
 
-    void Analytics::Screen(std::string name, std::string userId, std::string anonymousId, Object properties, Object context, Object integrations)
+    void Analytics::Screen(
+        const std::string& name,
+        const std::string& userId,
+        const std::string& anonymousId,
+        const Object& properties,
+        const Object& context,
+        const Object& integrations)
     {
-        auto e = std::make_shared<Event>("screen", userId, anonymousId, context, integrations);
-        if (properties.is_object()) {
-            e->object["properties"] = properties;
-        }
+        auto ev = CreateScreenEvent(name, userId, properties);
+        addEventString(ev, "anonymousId", anonymousId);
+        addEventObject(ev, "context", context);
+        addEventObject(ev, "integrations", integrations);
 
-        queueEvent(e);
+        queueEvent(std::move(ev));
     }
 
-    void Analytics::Alias(std::string previousId, std::string userId)
+    void Analytics::Alias(
+        const std::string& previousId,
+        const std::string& userId)
     {
         Alias(previousId, userId, "", nullptr, nullptr);
     }
 
-    void Analytics::Alias(std::string previousId, std::string userId, std::string anonymousId, Object context, Object integrations)
+    void Analytics::Alias(
+        const std::string& previousId,
+        const std::string& userId,
+        const std::string& anonymousId,
+        const Object& context,
+        const Object& integrations)
     {
-        auto e = std::make_shared<Event>("alias", userId, anonymousId, context, integrations);
-        e->object["previousId"] = previousId;
+        auto ev = CreateAliasEvent(previousId, userId);
+        addEventString(ev, "anonymousId", anonymousId);
+        addEventObject(ev, "context", context);
+        addEventObject(ev, "integrations", integrations);
 
-        queueEvent(e);
+        queueEvent(std::move(ev));
     }
 
-    void Analytics::Group(std::string groupId, Object traits)
+    void Analytics::Group(
+        const std::string& groupId,
+        const Object& traits)
     {
         // The docs seem to claim that a userId or anonymousId must be set,
         // but the code I've seen suggests otherwise.
         Group(groupId, "", "", traits, nullptr, nullptr);
     }
 
-    void Analytics::Group(std::string groupId, std::string userId, std::string anonymousId, Object traits, Object context, Object integrations)
+    void Analytics::Group(
+        const std::string& groupId,
+        const std::string& userId,
+        const std::string& anonymousId,
+        const Object& traits,
+        const Object& context,
+        const Object& integrations)
     {
-        auto e = std::make_shared<Event>("group", userId, anonymousId, context, integrations);
-        e->object["groupId"] = groupId;
+        auto ev = CreateGroupEvent(groupId, traits);
+        addEventString(ev, "anonymousId", anonymousId);
+        addEventObject(ev, "context", context);
+        addEventObject(ev, "integrations", integrations);
 
-        queueEvent(e);
+        queueEvent(std::move(ev));
+    }
+
+    void Analytics::PostEvent(Event ev)
+    {
+        queueEvent(std::move(ev));
     }
 
     // This implementation of base64 is taken from StackOverflow:
@@ -321,7 +454,7 @@ namespace analytics {
         // on each new attempt, since we're trying to synchronize our clock
         // with the server's.
         for (auto ev : batch) {
-            ev->object["sentAt"] = tmstamp;
+            ev["sentAt"] = tmstamp;
         }
 
         json body;
@@ -349,10 +482,10 @@ namespace analytics {
         }
     }
 
-    void Analytics::queueEvent(std::shared_ptr<Event> ev)
+    void Analytics::queueEvent(Event ev)
     {
         std::lock_guard<std::mutex> lk(lock);
-        events.push_back(ev);
+        events.push_back(std::move(ev));
         if (events.size() == 1) {
             flushTime = std::chrono::system_clock::now() + FlushInterval;
             if (flushTime < wakeTime) {
@@ -367,7 +500,7 @@ namespace analytics {
         int fails = 0;
         bool ok;
         std::string reason;
-        std::deque<std::shared_ptr<Event>> notifyq;
+        std::deque<Event> notifyq;
         std::unique_lock<std::mutex> lk(this->lock);
 
         for (;;) {
